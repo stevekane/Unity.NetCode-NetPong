@@ -14,11 +14,11 @@ namespace Assembly_CSharp.Generated
     [BurstCompile]
     public struct RpcJoinGameSerializer : IComponentData, IRpcCommandSerializer<RpcJoinGame>
     {
-        public void Serialize(ref DataStreamWriter writer, in RpcJoinGame data)
+        public void Serialize(ref DataStreamWriter writer, in RpcSerializerState state, in RpcJoinGame data)
         {
         }
 
-        public void Deserialize(ref DataStreamReader reader, ref RpcJoinGame data)
+        public void Deserialize(ref DataStreamReader reader, in RpcDeserializerState state,  ref RpcJoinGame data)
         {
         }
         [BurstCompile]

@@ -14,11 +14,11 @@ namespace Assembly_CSharp.Generated
     [BurstCompile]
     public struct RpcLeaveGameAckSerializer : IComponentData, IRpcCommandSerializer<RpcLeaveGameAck>
     {
-        public void Serialize(ref DataStreamWriter writer, in RpcLeaveGameAck data)
+        public void Serialize(ref DataStreamWriter writer, in RpcSerializerState state, in RpcLeaveGameAck data)
         {
         }
 
-        public void Deserialize(ref DataStreamReader reader, ref RpcLeaveGameAck data)
+        public void Deserialize(ref DataStreamReader reader, in RpcDeserializerState state,  ref RpcLeaveGameAck data)
         {
         }
         [BurstCompile]

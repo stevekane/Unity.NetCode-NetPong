@@ -57,6 +57,7 @@ public class ServerHandleRpcSystem : SystemBase {
       ecb.DestroyEntity(requestEntity);
       UnityEngine.Debug.Log($"Allowing player {networkId} to join game.");
     })
+    .WithDisposeOnCompletion(paddleSpawns)
     .WithReadOnly(networkIdFromEntity)
     .WithReadOnly(networkStreamInGameFromEntity)
     .WithBurst()

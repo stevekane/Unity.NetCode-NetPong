@@ -63,10 +63,9 @@ public class BallMovementSystem : SystemBase {
     var predictingTick = GhostPredictionSystemGroup.PredictingTick;
     var dt = Time.DeltaTime;
     var bounds = GetSingleton<Bounds>();
-    var paddles = PaddleQuery.ToComponentDataArrayAsync<Paddle>(Allocator.TempJob, out JobHandle paddlesHandle);
-    var paddleTranslations = PaddleQuery.ToComponentDataArrayAsync<Translation>(Allocator.TempJob, out JobHandle paddleTranslationsHandle);
+    var paddles = PaddleQuery.ToComponentDataArray<Paddle>(Allocator.TempJob);
+    var paddleTranslations = PaddleQuery.ToComponentDataArray<Translation>(Allocator.TempJob);
 
-    Dependency = JobHandle.CombineDependencies(paddlesHandle, paddleTranslationsHandle);
     Entities
     .WithName("Predicted_Ball_Movement")
     .ForEach((Entity entity, int nativeThreadIndex, ref Translation translation, ref Rotation rotation, ref Ball ball, ref Claimed claimed, in PredictedGhostComponent predictedGhost) => {
@@ -88,6 +87,10 @@ public class BallMovementSystem : SystemBase {
       }
       translation.Value += ball.Speed * dt * forward(rotation.Value);
     })
+    .WithReadOnly(paddles)
+    .WithReadOnly(paddleTranslations)
+    .WithDisposeOnCompletion(paddles)
+    .WithDisposeOnCompletion(paddleTranslations)
     .WithBurst()
     .ScheduleParallel();
   }

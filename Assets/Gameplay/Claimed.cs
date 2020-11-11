@@ -5,4 +5,5 @@ using Unity.NetCode;
 [GhostComponent(PrefabType=GhostPrefabType.AllPredicted)]
 public struct Claimed : IComponentData {
   [GhostField] public ushort TeamIndex;
+
 }

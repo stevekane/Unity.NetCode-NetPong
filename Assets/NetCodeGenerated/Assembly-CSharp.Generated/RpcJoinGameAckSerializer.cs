@@ -14,7 +14,7 @@ namespace Assembly_CSharp.Generated
     [BurstCompile]
     public struct RpcJoinGameAckSerializer : IComponentData, IRpcCommandSerializer<RpcJoinGameAck>
     {
-        public void Serialize(ref DataStreamWriter writer, in RpcJoinGameAck data)
+        public void Serialize(ref DataStreamWriter writer, in RpcSerializerState state, in RpcJoinGameAck data)
         {
             writer.WriteUInt(data.GhostsSubSceneGUID.Value.x);
             writer.WriteUInt(data.GhostsSubSceneGUID.Value.y);
@@ -26,7 +26,7 @@ namespace Assembly_CSharp.Generated
             writer.WriteUInt(data.BoardSubSceneGUID.Value.w);
         }
 
-        public void Deserialize(ref DataStreamReader reader, ref RpcJoinGameAck data)
+        public void Deserialize(ref DataStreamReader reader, in RpcDeserializerState state,  ref RpcJoinGameAck data)
         {
             data.GhostsSubSceneGUID.Value.x = (uint) reader.ReadUInt();
             data.GhostsSubSceneGUID.Value.y = (uint) reader.ReadUInt();
