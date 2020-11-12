@@ -6,50 +6,13 @@ using Unity.Mathematics;
 using Unity.Jobs;
 using UnityEngine;
 using static Unity.Mathematics.math;
+using static PhysicsCollisionUtils;
 
 [UpdateInGroup(typeof(GhostPredictionSystemGroup))]
 [UpdateAfter(typeof(PaddleMovementSystem))]
 public class BallMovementSystem : SystemBase {
   GhostPredictionSystemGroup GhostPredictionSystemGroup;
   EntityQuery PaddleQuery;
-
-  public static bool PenetratesWalls(in float3 newPosition, in Bounds bounds) {
-    return (newPosition.z < bounds.Min.z) || (newPosition.z > bounds.Max.z);
-  }
-
-  public static bool PenetrateLeftGoalLine(in float3 newPosition, in Bounds bounds) {
-    return newPosition.x < bounds.Min.x;
-  }
-
-  public static bool PenetrateRightGoalLine(in float3 newPosition, in Bounds bounds) {
-    return newPosition.x > bounds.Max.x;
-  }
-
-  public static bool OverlapBox(in float3 position, in float3 dimensions, in float3 center) {
-    var min = center - dimensions / 2;
-    var max = center + dimensions / 2;
-
-    return (position.x <= max.x && position.x >= min.x) 
-        && (position.y <= max.y && position.y >= min.y)
-        && (position.z <= max.z && position.z >= min.z);
-  }
-
-  // n^2 huzzah!
-  public static bool PenetratesAnyPaddle(
-  in float3 oldPosition, 
-  in float3 newPosition, 
-  NativeArray<Paddle> paddles, 
-  NativeArray<Translation> paddleTranslations) {
-    for (var i = 0 ; i < paddles.Length; i++) {
-      if (OverlapBox(oldPosition, paddles[i].Dimensions, paddleTranslations[i].Value)) {
-        return true;
-      }
-      if (OverlapBox(newPosition, paddles[i].Dimensions, paddleTranslations[i].Value)) {
-        return true;
-      }
-    }
-    return false;
-  }
 
   protected override void OnCreate() {
     GhostPredictionSystemGroup = World.GetExistingSystem<GhostPredictionSystemGroup>();
@@ -63,8 +26,6 @@ public class BallMovementSystem : SystemBase {
     var predictingTick = GhostPredictionSystemGroup.PredictingTick;
     var dt = Time.DeltaTime;
     var bounds = GetSingleton<Bounds>();
-    var paddles = PaddleQuery.ToComponentDataArray<Paddle>(Allocator.TempJob);
-    var paddleTranslations = PaddleQuery.ToComponentDataArray<Translation>(Allocator.TempJob);
 
     Entities
     .WithName("Predicted_Ball_Movement")
@@ -75,22 +36,21 @@ public class BallMovementSystem : SystemBase {
 
       var oldPosition = translation.Value;
       var newPosition = oldPosition + ball.Speed * dt * forward(rotation.Value);
+      var newPositionXZ = float2(newPosition.x, newPosition.z);
+      var delta = newPosition - oldPosition;
+      var direction = normalize(delta);
+      var lengthOutsideBounds = PointOutsideCircleDistance(newPositionXZ, float2(0,0), bounds.Radius);
 
-      if (PenetrateLeftGoalLine(newPosition, bounds)) {
-        claimed.TeamIndex = 1;
-      } else if (PenetrateRightGoalLine(newPosition, bounds)) {
-        claimed.TeamIndex = 2;
-      } else if (PenetratesWalls(newPosition, bounds)) {
+      // Technically, this is not adequate. You should actually solve the physics update iteratively such that a ball which 
+      // deflects only to penetrate again would be solved again until it no longer penetratres.
+      // This could be done by recording these motions, solving, recording motions, solving, etc
+      if (lengthOutsideBounds >= 0) {
         rotation.Value = Quaternion.LookRotation(forward(rotation.Value) * float3(1,1,-1), float3(0,0,0));
-      } else if (PenetratesAnyPaddle(oldPosition, newPosition, paddles, paddleTranslations)) {
-        rotation.Value = Quaternion.LookRotation(forward(rotation.Value) * float3(-1,1,1), float3(0,0,0));
+        translation.Value += direction * lengthOutsideBounds + ball.Speed * dt * forward(rotation.Value);
+      } else {
+        translation.Value = newPosition;
       }
-      translation.Value += ball.Speed * dt * forward(rotation.Value);
     })
-    .WithReadOnly(paddles)
-    .WithReadOnly(paddleTranslations)
-    .WithDisposeOnCompletion(paddles)
-    .WithDisposeOnCompletion(paddleTranslations)
     .WithBurst()
     .ScheduleParallel();
   }
