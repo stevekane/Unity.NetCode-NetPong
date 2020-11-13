@@ -23,12 +23,13 @@ public static class PhysicsCollisionUtils {
     var drSquared = dx * dx + dy * dy;
     var D = x1 * y2 - x2 * y1;
     var delta = r * r * drSquared - D * D;
+    var sqrtDelta = sqrt(delta);
 
     if (delta > 0) {
-      var x_1 = (D * dy + sgn(dy) * dx * sqrt(delta)) / (drSquared);
-      var x_2 = (D * dy - sgn(dy) * dx * sqrt(delta)) / (drSquared);
-      var y_1 = (-D * dx + abs(dy) * sqrt(delta)) / (drSquared);
-      var y_2 = (-D * dx - abs(dy) * sqrt(delta)) / (drSquared);        
+      var x_1 = (D * dy + sgn(dy) * dx * sqrtDelta) / (drSquared);
+      var x_2 = (D * dy - sgn(dy) * dx * sqrtDelta) / (drSquared);
+      var y_1 = (-D * dx + abs(dy) * sqrtDelta) / (drSquared);
+      var y_2 = (-D * dx - abs(dy) * sqrtDelta) / (drSquared);        
       var i1 = new float2(x_1, y_1);
       var i2 = new float2(x_2, y_2);
       var i1Valid = PointIsOnLineSegment(p1, p2, i1);
@@ -48,5 +49,14 @@ public static class PhysicsCollisionUtils {
 
   public static float PointOutsideCircleDistance(float2 p, float2 center, float radius) {
     return length(p - center) - radius;
+  }
+
+  public static bool WithinArcSegment(float radians, float minRadians, float maxRadians) {
+    const float TWO_PI = 2 * PI;
+    float radiansNormalized = radians % TWO_PI;
+    float minRadiansNormalized = minRadians % TWO_PI;
+    float maxRadiansNormalized = maxRadians % TWO_PI;
+
+    return radiansNormalized >= minRadiansNormalized && radiansNormalized <= maxRadiansNormalized;
   }
 }

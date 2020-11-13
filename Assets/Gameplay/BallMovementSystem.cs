@@ -23,7 +23,9 @@ public class BallMovementSystem : SystemBase {
   }
 
   protected override void OnUpdate() {
+    var isServer = World.GetExistingSystem<ServerSimulationSystemGroup>() != null;
     var predictingTick = GhostPredictionSystemGroup.PredictingTick;
+    var isFinalTick = GhostPredictionSystemGroup.IsFinalPredictionTick;
     var dt = Time.DeltaTime;
     var bounds = GetSingleton<Bounds>();
 
@@ -34,19 +36,41 @@ public class BallMovementSystem : SystemBase {
         return;
       }
 
+      const float PaddleRadius = 15f;
+      const float PaddleRadians = PI / 4f;
+      const float PaddleMinRadians = PaddleRadians - .2f;
+      const float PaddleMaxRadians = PaddleRadians + .2f;
+
+      var originXZ = float2(0,0);
       var oldPosition = translation.Value;
       var newPosition = oldPosition + ball.Speed * dt * forward(rotation.Value);
       var newPositionXZ = float2(newPosition.x, newPosition.z);
       var delta = newPosition - oldPosition;
       var direction = normalize(delta);
-      var lengthOutsideBounds = PointOutsideCircleDistance(newPositionXZ, float2(0,0), bounds.Radius);
+      var lengthOutsideBoundsRadius = PointOutsideCircleDistance(newPositionXZ, originXZ, bounds.Radius);
+      var lengthOutsidePaddleRadius = PointOutsideCircleDistance(newPositionXZ, originXZ, PaddleRadius);
 
-      // Technically, this is not adequate. You should actually solve the physics update iteratively such that a ball which 
-      // deflects only to penetrate again would be solved again until it no longer penetratres.
-      // This could be done by recording these motions, solving, recording motions, solving, etc
-      if (lengthOutsideBounds >= 0) {
-        rotation.Value = Quaternion.LookRotation(forward(rotation.Value) * float3(1,1,-1), float3(0,0,0));
-        translation.Value += direction * lengthOutsideBounds + ball.Speed * dt * forward(rotation.Value);
+      if (lengthOutsideBoundsRadius > 0) {
+        var totalDistance = length(delta);
+        var distanceToContact = totalDistance - lengthOutsideBoundsRadius;
+
+        translation.Value += distanceToContact * forward(rotation.Value);
+        rotation.Value = Quaternion.LookRotation(forward(rotation.Value) * float3(-1,1,-1), float3(0,1,0));
+        translation.Value += lengthOutsideBoundsRadius * forward(rotation.Value);
+      } else if (lengthOutsidePaddleRadius > 0) {
+        var totalDistance = length(delta);
+        var distanceToContact = totalDistance - lengthOutsidePaddleRadius;
+        var contactPosition = oldPosition + forward(rotation.Value) * distanceToContact;
+        var contactPostionXZ = new float2(contactPosition.x, contactPosition.z);
+        var contactRadians = atan2(contactPosition.z, contactPosition.x);
+
+        if (WithinArcSegment(contactRadians, PaddleMinRadians, PaddleMaxRadians)) {
+          translation.Value += distanceToContact * forward(rotation.Value);
+          rotation.Value = Quaternion.LookRotation(forward(rotation.Value) * float3(-1,1,-1), float3(0,1,0));
+          translation.Value += lengthOutsidePaddleRadius * forward(rotation.Value);
+        } else {
+          translation.Value = newPosition;
+        }
       } else {
         translation.Value = newPosition;
       }

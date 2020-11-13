@@ -5,12 +5,16 @@ public class CircleLineIntersectionTester : MonoBehaviour {
   public Transform t0;
   public Transform t1;
   public float Radius;
+  public float minRadians;
+  public float maxRadians;
+  public float targetRadians;
 
   public Transform OutSideSphereChecker;
 
   void OnDrawGizmos() {
     DrawCircleLineIntersectionGizmos();
     DrawOutsideSphereGizmos();
+    DrawWithinArcSegmentGizmos();
   }
 
   void DrawCircleLineIntersectionGizmos() {
@@ -41,5 +45,16 @@ public class CircleLineIntersectionTester : MonoBehaviour {
     } else {
       Debug.DrawLine(Vector3.zero, OutSideSphereChecker.position, Color.green);
     }
+  }
+
+  void DrawWithinArcSegmentGizmos() {
+    var pMin = new Vector3(Mathf.Cos(minRadians) * Radius, 0, Mathf.Sin(minRadians) * Radius);
+    var pMax = new Vector3(Mathf.Cos(maxRadians) * Radius, 0, Mathf.Sin(maxRadians) * Radius);
+    var p = new Vector3(Mathf.Cos(targetRadians) * Radius, 0, Mathf.Sin(targetRadians) * Radius);
+    var color = WithinArcSegment(targetRadians, minRadians, maxRadians) ? Color.green : Color.red;
+
+    Debug.DrawLine(Vector3.zero, pMin, Color.yellow);
+    Debug.DrawLine(Vector3.zero, pMax, Color.yellow);
+    Debug.DrawLine(Vector3.zero, p, color);
   }
 }
