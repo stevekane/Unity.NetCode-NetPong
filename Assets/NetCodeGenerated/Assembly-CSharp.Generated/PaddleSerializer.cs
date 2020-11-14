@@ -23,7 +23,7 @@ namespace Assembly_CSharp.Generated
             {
                 s_State = new GhostComponentSerializer.State
                 {
-                    GhostFieldsHash = 4379934046830037180,
+                    GhostFieldsHash = 14767913548786401661,
                     ExcludeFromComponentCollectionHash = 0,
                     ComponentType = ComponentType.ReadWrite<Paddle>(),
                     ComponentSize = UnsafeUtility.SizeOf<Paddle>(),
@@ -59,12 +59,9 @@ namespace Assembly_CSharp.Generated
         public static GhostComponentSerializer.State State => GetState();
         public struct Snapshot
         {
-            public float Speed;
-            public float Dimensions_x;
-            public float Dimensions_y;
-            public float Dimensions_z;
+            public float Radians;
         }
-        public const int ChangeMaskBits = 2;
+        public const int ChangeMaskBits = 1;
         [BurstCompile]
         [MonoPInvokeCallback(typeof(GhostComponentSerializer.CopyToFromSnapshotDelegate))]
         private static void CopyToSnapshot(IntPtr stateData, IntPtr snapshotData, int snapshotOffset, int snapshotStride, IntPtr componentData, int componentStride, int count)
@@ -74,10 +71,7 @@ namespace Assembly_CSharp.Generated
                 ref var snapshot = ref GhostComponentSerializer.TypeCast<Snapshot>(snapshotData, snapshotOffset + snapshotStride*i);
                 ref var component = ref GhostComponentSerializer.TypeCast<Paddle>(componentData, componentStride*i);
                 ref var serializerState = ref GhostComponentSerializer.TypeCast<GhostSerializerState>(stateData, 0);
-                snapshot.Speed = component.Speed;
-                snapshot.Dimensions_x = component.Dimensions.x;
-                snapshot.Dimensions_y = component.Dimensions.y;
-                snapshot.Dimensions_z = component.Dimensions.z;
+                snapshot.Radians = component.Radians;
             }
         }
         [BurstCompile]
@@ -93,8 +87,7 @@ namespace Assembly_CSharp.Generated
                 ref var component = ref GhostComponentSerializer.TypeCast<Paddle>(componentData, componentStride*i);
                 var deserializerState = GhostComponentSerializer.TypeCast<GhostDeserializerState>(stateData, 0);
                 deserializerState.SnapshotTick = snapshotInterpolationData.Tick;
-                component.Speed = snapshotBefore.Speed;
-                component.Dimensions = new float3(snapshotBefore.Dimensions_x, snapshotBefore.Dimensions_y, snapshotBefore.Dimensions_z);
+                component.Radians = snapshotBefore.Radians;
             }
         }
         [BurstCompile]
@@ -103,10 +96,7 @@ namespace Assembly_CSharp.Generated
         {
             ref var component = ref GhostComponentSerializer.TypeCast<Paddle>(componentData, 0);
             ref var backup = ref GhostComponentSerializer.TypeCast<Paddle>(backupData, 0);
-            component.Speed = backup.Speed;
-            component.Dimensions.x = backup.Dimensions.x;
-            component.Dimensions.y = backup.Dimensions.y;
-            component.Dimensions.z = backup.Dimensions.z;
+            component.Radians = backup.Radians;
         }
 
         [BurstCompile]
@@ -124,11 +114,8 @@ namespace Assembly_CSharp.Generated
             ref var snapshot = ref GhostComponentSerializer.TypeCast<Snapshot>(snapshotData);
             ref var baseline = ref GhostComponentSerializer.TypeCast<Snapshot>(baselineData);
             uint changeMask;
-            changeMask = (snapshot.Speed != baseline.Speed) ? 1u : 0;
-            changeMask |= (snapshot.Dimensions_x != baseline.Dimensions_x) ? (1u<<1) : 0;
-            changeMask |= (snapshot.Dimensions_y != baseline.Dimensions_y) ? (1u<<1) : 0;
-            changeMask |= (snapshot.Dimensions_z != baseline.Dimensions_z) ? (1u<<1) : 0;
-            GhostComponentSerializer.CopyToChangeMask(bits, changeMask, startOffset, 2);
+            changeMask = (snapshot.Radians != baseline.Radians) ? 1u : 0;
+            GhostComponentSerializer.CopyToChangeMask(bits, changeMask, startOffset, 1);
         }
         [BurstCompile]
         [MonoPInvokeCallback(typeof(GhostComponentSerializer.SerializeDelegate))]
@@ -138,13 +125,7 @@ namespace Assembly_CSharp.Generated
             ref var baseline = ref GhostComponentSerializer.TypeCast<Snapshot>(baselineData);
             uint changeMask = GhostComponentSerializer.CopyFromChangeMask(changeMaskData, startOffset, ChangeMaskBits);
             if ((changeMask & (1 << 0)) != 0)
-                writer.WritePackedFloatDelta(snapshot.Speed, baseline.Speed, compressionModel);
-            if ((changeMask & (1 << 1)) != 0)
-                writer.WritePackedFloatDelta(snapshot.Dimensions_x, baseline.Dimensions_x, compressionModel);
-            if ((changeMask & (1 << 1)) != 0)
-                writer.WritePackedFloatDelta(snapshot.Dimensions_y, baseline.Dimensions_y, compressionModel);
-            if ((changeMask & (1 << 1)) != 0)
-                writer.WritePackedFloatDelta(snapshot.Dimensions_z, baseline.Dimensions_z, compressionModel);
+                writer.WritePackedFloatDelta(snapshot.Radians, baseline.Radians, compressionModel);
         }
         [BurstCompile]
         [MonoPInvokeCallback(typeof(GhostComponentSerializer.DeserializeDelegate))]
@@ -154,21 +135,9 @@ namespace Assembly_CSharp.Generated
             ref var baseline = ref GhostComponentSerializer.TypeCast<Snapshot>(baselineData);
             uint changeMask = GhostComponentSerializer.CopyFromChangeMask(changeMaskData, startOffset, ChangeMaskBits);
             if ((changeMask & (1 << 0)) != 0)
-                snapshot.Speed = reader.ReadPackedFloatDelta(baseline.Speed, compressionModel);
+                snapshot.Radians = reader.ReadPackedFloatDelta(baseline.Radians, compressionModel);
             else
-                snapshot.Speed = baseline.Speed;
-            if ((changeMask & (1 << 1)) != 0)
-                snapshot.Dimensions_x = reader.ReadPackedFloatDelta(baseline.Dimensions_x, compressionModel);
-            else
-                snapshot.Dimensions_x = baseline.Dimensions_x;
-            if ((changeMask & (1 << 1)) != 0)
-                snapshot.Dimensions_y = reader.ReadPackedFloatDelta(baseline.Dimensions_y, compressionModel);
-            else
-                snapshot.Dimensions_y = baseline.Dimensions_y;
-            if ((changeMask & (1 << 1)) != 0)
-                snapshot.Dimensions_z = reader.ReadPackedFloatDelta(baseline.Dimensions_z, compressionModel);
-            else
-                snapshot.Dimensions_z = baseline.Dimensions_z;
+                snapshot.Radians = baseline.Radians;
         }
         #if UNITY_EDITOR || DEVELOPMENT_BUILD
         [BurstCompile]
@@ -178,9 +147,7 @@ namespace Assembly_CSharp.Generated
             ref var component = ref GhostComponentSerializer.TypeCast<Paddle>(componentData, 0);
             ref var backup = ref GhostComponentSerializer.TypeCast<Paddle>(backupData, 0);
             int errorIndex = 0;
-            errors[errorIndex] = math.max(errors[errorIndex], math.abs(component.Speed - backup.Speed));
-            ++errorIndex;
-            errors[errorIndex] = math.max(errors[errorIndex], math.distance(component.Dimensions, backup.Dimensions));
+            errors[errorIndex] = math.max(errors[errorIndex], math.abs(component.Radians - backup.Radians));
             ++errorIndex;
         }
         private static int GetPredictionErrorNames(ref FixedString512 names)
@@ -188,11 +155,7 @@ namespace Assembly_CSharp.Generated
             int nameCount = 0;
             if (nameCount != 0)
                 names.Append(new FixedString32(","));
-            names.Append(new FixedString64("Speed"));
-            ++nameCount;
-            if (nameCount != 0)
-                names.Append(new FixedString32(","));
-            names.Append(new FixedString64("Dimensions"));
+            names.Append(new FixedString64("Radians"));
             ++nameCount;
             return nameCount;
         }

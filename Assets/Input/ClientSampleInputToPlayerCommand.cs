@@ -3,9 +3,7 @@ using Unity.Jobs;
 using Unity.NetCode;
 using UnityEngine;
 
-[UpdateInGroup(typeof(ClientSimulationSystemGroup))]
-[UpdateBefore(typeof(CommandSendSystemGroup))]
-[UpdateBefore(typeof(GhostSimulationSystemGroup))]
+[UpdateInGroup(typeof(GhostInputSystemGroup))]
 public class ClientSampleInputToPlayerCommand : SystemBase {
   ClientSimulationSystemGroup ClientSimulationSystemGroup;
 
@@ -17,7 +15,7 @@ public class ClientSampleInputToPlayerCommand : SystemBase {
     var commandTargetEntity = GetSingletonEntity<CommandTargetComponent>();
     var commandTargetFromEntity = GetComponentDataFromEntity<CommandTargetComponent>(isReadOnly: false);
     var estimatedServerTick = ClientSimulationSystemGroup.ServerTick;
-    var playerCommand = new PlayerCommand(estimatedServerTick, Input.GetAxisRaw("Vertical"));
+    var playerCommand = new PlayerCommand(estimatedServerTick, Input.GetAxis("Vertical"));
 
     Entities
     .WithName("Sample_Player_Input")

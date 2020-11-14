@@ -1,7 +1,6 @@
-﻿using Unity.Collections;
-using Unity.Entities;
+﻿using Unity.Entities;
 using Unity.NetCode;
-using Unity.Transforms;
+using static Unity.Mathematics.math;
 
 [UpdateInGroup(typeof(ServerSimulationSystemGroup))]
 public class ServerHandleRpcSystem : SystemBase {
@@ -11,10 +10,6 @@ public class ServerHandleRpcSystem : SystemBase {
   protected override void OnCreate() {
     ExistingPlayers = EntityManager.CreateEntityQuery(new ComponentType[] {
       ComponentType.ReadOnly<Paddle>()
-    });
-    PaddleSpawns = EntityManager.CreateEntityQuery(new ComponentType[] { 
-      ComponentType.ReadOnly<PaddleSpawn>(),
-      ComponentType.ReadOnly<LocalToWorld>()
     });
     RequireSingletonForUpdate<NetworkIdComponent>();
   }
@@ -27,7 +22,6 @@ public class ServerHandleRpcSystem : SystemBase {
     var networkIdFromEntity = GetComponentDataFromEntity<NetworkIdComponent>(isReadOnly: true);
     var networkStreamInGameFromEntity = GetComponentDataFromEntity<NetworkStreamInGame>(isReadOnly: true);
     var existingPlayerCount = ExistingPlayers.CalculateEntityCount();
-    var paddleSpawns = PaddleSpawns.ToComponentDataArray<LocalToWorld>(Allocator.TempJob);
     var joinGameAck = new RpcJoinGameAck { 
       GhostsSubSceneGUID = subSceneReferences.GhostPrefabs,
       BoardSubSceneGUID = subSceneReferences.Board
@@ -43,10 +37,9 @@ public class ServerHandleRpcSystem : SystemBase {
       var networkId = networkIdFromEntity[request.SourceConnection].Value;
       var playerEntity = ecb.Instantiate(prefabs.Paddle);
       var ackEntity = ecb.CreateEntity();
-      var spawnIndex = (existingPlayerCount + 1) % 2;
-      var spawnLocation = paddleSpawns[spawnIndex];
+      var spawnRadians = (existingPlayerCount % 2 > 0) ? PI : 0;
 
-      ecb.SetComponent(playerEntity, new Translation { Value = spawnLocation.Position });
+      ecb.SetComponent(playerEntity, new Paddle { Radians = spawnRadians });
       ecb.SetComponent(playerEntity, new GhostOwnerComponent { NetworkId = networkId });
       ecb.SetComponent(request.SourceConnection, new CommandTargetComponent { targetEntity = playerEntity });
       ecb.AddComponent<NetworkStreamInGame>(request.SourceConnection);
@@ -57,7 +50,6 @@ public class ServerHandleRpcSystem : SystemBase {
       ecb.DestroyEntity(requestEntity);
       UnityEngine.Debug.Log($"Allowing player {networkId} to join game.");
     })
-    .WithDisposeOnCompletion(paddleSpawns)
     .WithReadOnly(networkIdFromEntity)
     .WithReadOnly(networkStreamInGameFromEntity)
     .WithBurst()

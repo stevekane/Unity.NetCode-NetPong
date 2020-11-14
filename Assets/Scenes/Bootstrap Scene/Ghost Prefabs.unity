@@ -168,11 +168,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Ghosts:
-  - prefab: {fileID: -521508562730376624, guid: 92a70696280b1934db4f9ecac3eba20d, type: 3}
+  - prefab: {fileID: 7239423486572262437, guid: 8306aa684bf538548abee79368b0f578, type: 3}
     enabled: 1
   - prefab: {fileID: -3049267275960912895, guid: 4ce8fcb41da91374aab065d9610bb79c, type: 3}
     enabled: 1
-  - prefab: {fileID: 7239423486572262437, guid: 8306aa684bf538548abee79368b0f578, type: 3}
+  - prefab: {fileID: -521508562730376624, guid: 92a70696280b1934db4f9ecac3eba20d, type: 3}
     enabled: 1
 --- !u!114 &1869105921
 MonoBehaviour:

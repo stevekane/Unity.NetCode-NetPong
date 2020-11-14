@@ -2,42 +2,13 @@
 using Unity.Jobs;
 using Unity.NetCode;
 using Unity.Transforms;
-using Unity.Mathematics;
+using UnityEngine;
 using static Unity.Mathematics.math;
+using static PhysicsCollisionUtils;
 
 [UpdateInGroup(typeof(GhostPredictionSystemGroup))]
 public class PaddleMovementSystem : SystemBase {
   GhostPredictionSystemGroup GhostPredictionSystemGroup;
-
-  public struct Hit {
-    public bool HitMax;
-    public float3 ContactPointMax;
-    public bool HitMin;
-    public float3 ContactPointMin;
-  }
-
-  public static bool Equal(in float3 a, in float3 b) {
-    return a.x == b.x && a.y == b.y && a.z == b.z;
-  }
-
-  public static bool PenetratesWalls(
-  in float3 p1,
-  in float3 dimensions,
-  in Bounds bounds,
-  out Hit hit) {
-    var zero = float3(0,0,0);
-    var halfHeight = dimensions / 2f;
-    var deltaMax = (p1 + halfHeight) - bounds.Max;
-    var deltaMin = (p1 - halfHeight) - bounds.Min;
-    var penetrationMax = max(deltaMax, zero);
-    var penetrationMin = min(deltaMin, zero);
-
-    hit.HitMax = !Equal(penetrationMax, zero);
-    hit.ContactPointMax = p1 - penetrationMax;
-    hit.HitMin = !Equal(penetrationMin, zero);
-    hit.ContactPointMin = p1 - penetrationMin;
-    return hit.HitMax || hit.HitMin;
-  }
 
   protected override void OnCreate() {
     GhostPredictionSystemGroup = World.GetExistingSystem<GhostPredictionSystemGroup>();
@@ -46,10 +17,10 @@ public class PaddleMovementSystem : SystemBase {
   protected override void OnUpdate() {
     var dt = Time.DeltaTime;
     var predictingTick = GhostPredictionSystemGroup.PredictingTick;
-    var bounds = GetSingleton<Bounds>();
+    var gameConfig = GetSingleton<GameConfiguration>();
 
     Entities
-    .ForEach((ref Translation translation, in Paddle paddle, in DynamicBuffer<PlayerCommand> commands, in PredictedGhostComponent predictedGhost) => {
+    .ForEach((ref Translation translation, ref Rotation rotation, ref Paddle paddle, in DynamicBuffer<PlayerCommand> commands, in PredictedGhostComponent predictedGhost) => {
       if (!GhostPredictionSystemGroup.ShouldPredict(predictingTick, predictedGhost)) {
         return;
       }
@@ -59,20 +30,17 @@ public class PaddleMovementSystem : SystemBase {
       }
 
       if (command.Pushed(PlayerCommand.Up)) {
-        translation.Value.z += dt * paddle.Speed;
+        paddle.Radians = AddRadians(paddle.Radians, gameConfig.PaddleSpeed * dt);
       } else if (command.Pushed(PlayerCommand.Down)) {
-        translation.Value.z -= dt * paddle.Speed;
+        paddle.Radians = AddRadians(paddle.Radians, -gameConfig.PaddleSpeed * dt);
       }
+      var up = float3(0, 1, 0);
+      var x = cos(paddle.Radians) * gameConfig.ArenaRadius;
+      var z = sin(paddle.Radians) * gameConfig.ArenaRadius;
+      var forward = normalize(float3(-x, 0, -z));
 
-      if (PenetratesWalls(translation.Value, paddle.Dimensions, bounds, out Hit hit)) {
-        if (hit.HitMax && hit.HitMin) {
-          translation.Value = (hit.ContactPointMax - hit.ContactPointMin) / 2f;
-        } else if (hit.HitMax) {
-          translation.Value = hit.ContactPointMax;
-        } else if (hit.HitMin) {
-          translation.Value = hit.ContactPointMin;
-        }
-      }
+      rotation.Value = Quaternion.LookRotation(forward, up);
+      translation.Value = float3(x, 0, z);
     })
     .WithBurst()
     .ScheduleParallel();

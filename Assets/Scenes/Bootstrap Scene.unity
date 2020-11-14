@@ -175,7 +175,7 @@ Camera:
     height: 1
   near clip plane: 0.3
   far clip plane: 1000
-  field of view: 60
+  field of view: 50
   orthographic: 0
   orthographic size: 20
   m_Depth: 0
@@ -317,9 +317,9 @@ MonoBehaviour:
   t0: {fileID: 752521426}
   t1: {fileID: 1765653530}
   Radius: 5
-  minRadians: 3
-  maxRadians: 4
-  targetRadians: 3.5
+  minRadians: 5
+  maxRadians: 0.49
+  targetRadians: 1
   OutSideSphereChecker: {fileID: 1244650458}
 --- !u!1 &1049010932
 GameObject:
@@ -567,7 +567,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1765653529}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -3.89, y: 0, z: 4.57}
+  m_LocalPosition: {x: -4.44, y: 0, z: 4.88}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 897893327}

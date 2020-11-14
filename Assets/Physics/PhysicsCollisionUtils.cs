@@ -2,6 +2,8 @@
 using static Unity.Mathematics.math;
 
 public static class PhysicsCollisionUtils {
+  public static readonly float TWO_PI = 2 * PI;
+
   public static bool PointIsOnLineSegment(float2 p1, float2 p2, float2 p) {
     var xHigh = max(p1.x, p2.x);
     var xLow = min(p1.x, p2.x);
@@ -43,6 +45,18 @@ public static class PhysicsCollisionUtils {
     }
   }
 
+  public static float AddRadians(float r0, float dr) {
+    var r1 = (r0 + dr) % TWO_PI; 
+
+    return select(r1, r1 + TWO_PI, r1 < 0);
+  }
+
+  public static float CartesianToRadians(float2 p) {
+    var radians = atan2(p.y, p.x);
+
+    return (radians > 0) ? (radians) : (radians + TWO_PI);
+  }
+
   public static bool PointOutsideCircle(float2 p, float2 center, float radius) {
     return lengthsq(p - center) > radius * radius;
   }
@@ -51,12 +65,20 @@ public static class PhysicsCollisionUtils {
     return length(p - center) - radius;
   }
 
-  public static bool WithinArcSegment(float radians, float minRadians, float maxRadians) {
-    const float TWO_PI = 2 * PI;
-    float radiansNormalized = radians % TWO_PI;
-    float minRadiansNormalized = minRadians % TWO_PI;
-    float maxRadiansNormalized = maxRadians % TWO_PI;
-
-    return radiansNormalized >= minRadiansNormalized && radiansNormalized <= maxRadiansNormalized;
+  // Assumes all values between 0-2pi
+  public static bool WithinArcSegment(float targetRadians, float minRadians, float maxRadians) {
+    if (minRadians <= maxRadians) {
+      if (maxRadians - minRadians <= PI) {
+        return minRadians <= targetRadians && targetRadians <= maxRadians;
+      } else {
+        return maxRadians <= targetRadians || targetRadians <= minRadians;
+    }
+    } else {
+      if (minRadians - maxRadians <= PI) {
+        return maxRadians <= targetRadians && targetRadians <= minRadians;
+      } else {
+        return minRadians <= targetRadians || targetRadians <= maxRadians;
+      }
+    }
   }
 }
