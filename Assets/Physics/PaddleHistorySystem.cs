@@ -6,6 +6,7 @@ using Unity.NetCode;
 
 [UpdateInGroup(typeof(GhostPredictionSystemGroup), OrderFirst=true)]
 public class PaddleHistorySystem : SystemBase {
+  /*
   const int MAX_PADDLES_PER_TICK = 64;
   const int MAX_TICKS_STORED_ON_SERVER = 16;
   const int MAX_TICKS_STORED_ON_CLIENT = 1;
@@ -45,8 +46,10 @@ public class PaddleHistorySystem : SystemBase {
       LatestIndex = 0;
     }
   }
+  */
 
   protected override void OnUpdate() {
+    /*
     LatestIndex = (LatestIndex + 1 >= MaxTicks) ? (0) : (LatestIndex + 1);
 
     var targetIndex = LatestIndex * MAX_PADDLES_PER_TICK;
@@ -61,5 +64,6 @@ public class PaddleHistorySystem : SystemBase {
     })
     .WithBurst()
     .Schedule(JobHandle.CombineDependencies(Dependency, FinalHistoryJob));
+    */
   }
 }

@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using Unity.Mathematics;
 using static PhysicsCollisionUtils;
 
 public class CircleLineIntersectionTester : MonoBehaviour {
@@ -13,28 +14,31 @@ public class CircleLineIntersectionTester : MonoBehaviour {
 
   void OnDrawGizmos() {
     DrawCircleLineIntersectionGizmos();
-    DrawOutsideSphereGizmos();
-    DrawWithinArcSegmentGizmos();
+    DrawCircleLineIntersectionAPPROXIMATEGizmos();
+    // DrawOutsideSphereGizmos();
+    // DrawWithinArcSegmentGizmos();
   }
 
   void DrawCircleLineIntersectionGizmos() {
-    var p0 = new Vector2(t0.position.x, t0.position.z);
-    var p1 = new Vector2(t1.position.x, t1.position.z);
-    var intersections = LineSegmentCircleIntersection(p0, p1, Radius);
+    var points = new float2[2];
+    var intersectionCount = LineSegmentCircleIntersection(FromXZPlane(t0.position), FromXZPlane(t1.position), Radius, ref points);
 
-    if (intersections.Item1.HasValue) {
-      var pt = new Vector3(intersections.Item1.Value.x, 0, intersections.Item1.Value.y);
-
-      Debug.DrawLine(Vector3.zero, pt, Color.green);
-    }
-    if (intersections.Item2.HasValue) {
-      var pt = new Vector3(intersections.Item2.Value.x, 0, intersections.Item2.Value.y);
-
-      Debug.DrawLine(Vector3.zero, pt, Color.green);
+    for (int i = 0; i < intersectionCount; i++) {
+      Debug.DrawLine(Vector3.zero, ToXZPlane(points[i]), Color.green);
     }
 
     Debug.DrawLine(t0.position, t1.position, Color.yellow);
     Gizmos.DrawWireSphere(Vector3.zero, Radius);
+  }
+
+  void DrawCircleLineIntersectionAPPROXIMATEGizmos() {
+    var p0 = new Vector2(t0.position.x, t0.position.z);
+    var p1 = new Vector2(t1.position.x, t1.position.z);
+    var intersects = LineSegmentCircleIntersectionAPPROXIMATE(p0, p1, Radius, out float2 point);
+
+    if (intersects) {
+      Debug.DrawLine(Vector3.zero, ToXZPlane(point), Color.magenta);
+    }
   }
 
   void DrawOutsideSphereGizmos() {

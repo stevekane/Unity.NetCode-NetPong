@@ -20,7 +20,7 @@ public class PaddleMovementSystem : SystemBase {
     var gameConfig = GetSingleton<GameConfiguration>();
 
     Entities
-    .ForEach((ref Translation translation, ref Rotation rotation, ref Paddle paddle, in DynamicBuffer<PlayerCommand> commands, in PredictedGhostComponent predictedGhost) => {
+    .ForEach((ref Translation translation, ref Rotation rotation, ref Paddle paddle, in DynamicBuffer<PlayerCommand> commands, in GhostOwnerComponent ghostOwner, in PredictedGhostComponent predictedGhost) => {
       if (!GhostPredictionSystemGroup.ShouldPredict(predictingTick, predictedGhost)) {
         return;
       }

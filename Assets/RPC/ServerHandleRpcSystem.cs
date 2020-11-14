@@ -37,9 +37,9 @@ public class ServerHandleRpcSystem : SystemBase {
       var networkId = networkIdFromEntity[request.SourceConnection].Value;
       var playerEntity = ecb.Instantiate(prefabs.Paddle);
       var ackEntity = ecb.CreateEntity();
-      var spawnRadians = (existingPlayerCount % 2 > 0) ? PI : 0;
 
-      ecb.SetComponent(playerEntity, new Paddle { Radians = spawnRadians });
+      ecb.SetComponent(playerEntity, new TeamOwner { TeamIndex = (existingPlayerCount % 2) });
+      ecb.SetComponent(playerEntity, new Paddle { Radians = (existingPlayerCount % 2) * PI });
       ecb.SetComponent(playerEntity, new GhostOwnerComponent { NetworkId = networkId });
       ecb.SetComponent(request.SourceConnection, new CommandTargetComponent { targetEntity = playerEntity });
       ecb.AddComponent<NetworkStreamInGame>(request.SourceConnection);

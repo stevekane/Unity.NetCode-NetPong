@@ -5,27 +5,41 @@ using Unity.NetCode;
 [UpdateInGroup(typeof(ServerSimulationSystemGroup))]
 public class KillDeadBallsSystem : SystemBase {
   protected override void OnUpdate() {
-    // This is fundamentally an accumulator so let's just run it on the main thread
-    // I suppose it could be a job that just writes everytime to the scores as well
+    // TODO: would probably be a bit better to do this with a query for balls
+    // and a single write to the score followed by a second job that writes 
+    // destroys into an entity command buffer.
+
     Entities
-    .WithName("Kill_Dead_Balls")
+    .WithName("Record_Score_For_Dead_Balls")
     .WithAll<Ball>()
-    .ForEach((Entity e, in Claimed claimed) => {
+    .ForEach((Entity e, in LifeCycle lifeCycle, in TeamOwner teamOwner) => {
+      if (lifeCycle.CurrentState != LifeCycle.State.Dead) {
+        return;
+      }
+
       var scoreEntity = GetSingletonEntity<Scores>();
       var score = GetComponent<Scores>(scoreEntity);
 
-      switch (claimed.TeamIndex) {
-      case 1:
+      switch (teamOwner.TeamIndex) {
+      case 0:
         score.LeftTeam++;
         SetComponent(scoreEntity, score);
-        EntityManager.DestroyEntity(e);
       break;
 
-      case 2:
+      case 1:
         score.RightTeam++;
         SetComponent(scoreEntity, score);
-        EntityManager.DestroyEntity(e);
       break;
+      }
+    })
+    .WithoutBurst()
+    .Run();
+
+    Entities
+    .WithName("Kill_The_Dead")
+    .ForEach((Entity e, in LifeCycle lifeCycle) => {
+      if (lifeCycle.CurrentState == LifeCycle.State.Dead) {
+        EntityManager.DestroyEntity(e);
       }
     })
     .WithStructuralChanges()
