@@ -199,7 +199,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   PaddleSpanRadians: 0.785375
   PaddleSpeed: 3
-  BallSpeed: 15
+  BallSpeed: 20
   ArenaRadius: 20
 --- !u!1 &919897655
 GameObject:

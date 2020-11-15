@@ -64,21 +64,19 @@ public static class PhysicsCollisionUtils {
     if (PointOutsideCircle(p1, center, r)) {
       point = float2(0,0);
       return false;
-    }
-
-    if (!PointOutsideCircle(p2, center, r)) {
+    } else if (!PointOutsideCircle(p2, center, r)) {
       point = float2(0,0);
       return false;
+    } else {
+      var lengthOutsideRadius = PointOutsideCircleDistance(p2, center, r);
+      var delta = p2 - p1;
+      var totalDistance = length(delta);
+      var direction = delta / totalDistance;
+      var distanceToImpact = totalDistance - lengthOutsideRadius;
+
+      point = p1 + direction * distanceToImpact;
+      return true;
     }
-
-    var lengthOutsideRadius = PointOutsideCircleDistance(p2, center, r);
-    var delta = p2 - p1;
-    var totalDistance = length(delta);
-    var direction = delta / totalDistance;
-    var distanceToImpact = totalDistance - lengthOutsideRadius;
-
-    point = p1 + direction * distanceToImpact;
-    return true;
   }
 
   public static float2 ReflectAbout(float2 d, float2 n) {
