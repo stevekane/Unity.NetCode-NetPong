@@ -10,8 +10,7 @@ public class RenderScoresSystem : SystemBase {
   }
 
   protected override void OnUpdate() {
-    // Holy fucking Java batman....
-    var scoreOverlayPrefab = GetSingleton<ClientOnlyGameObjectPrefabs>().ScoreGUIPrefabReference.Value.GameObject.GetComponent<ScoreOverlay>();
+    var scoreOverlayPrefab = ClientOnlyGameObjectPrefabsAuthoring.Instance.ScoreGUIPrefab.GetComponent<ScoreOverlay>();
 
     Entities
     .WithName("Create_ScoreGUI")
