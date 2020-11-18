@@ -12,20 +12,28 @@ using Unity.Mathematics;
 namespace Assembly_CSharp.Generated
 {
     [BurstCompile]
-    public struct RpcJoinGameAckSerializer : IComponentData, IRpcCommandSerializer<RpcJoinGameAck>
+    public struct RpcsLoadSubSceneSerializer : IComponentData, IRpcCommandSerializer<RpcsLoadSubScene>
     {
-        public void Serialize(ref DataStreamWriter writer, in RpcSerializerState state, in RpcJoinGameAck data)
+        public void Serialize(ref DataStreamWriter writer, in RpcSerializerState state, in RpcsLoadSubScene data)
         {
+            writer.WriteUInt(data.SceneGUID.Value.x);
+            writer.WriteUInt(data.SceneGUID.Value.y);
+            writer.WriteUInt(data.SceneGUID.Value.z);
+            writer.WriteUInt(data.SceneGUID.Value.w);
         }
 
-        public void Deserialize(ref DataStreamReader reader, in RpcDeserializerState state,  ref RpcJoinGameAck data)
+        public void Deserialize(ref DataStreamReader reader, in RpcDeserializerState state,  ref RpcsLoadSubScene data)
         {
+            data.SceneGUID.Value.x = (uint) reader.ReadUInt();
+            data.SceneGUID.Value.y = (uint) reader.ReadUInt();
+            data.SceneGUID.Value.z = (uint) reader.ReadUInt();
+            data.SceneGUID.Value.w = (uint) reader.ReadUInt();
         }
         [BurstCompile]
         [MonoPInvokeCallback(typeof(RpcExecutor.ExecuteDelegate))]
         private static void InvokeExecute(ref RpcExecutor.Parameters parameters)
         {
-            RpcExecutor.ExecuteCreateRequestComponent<RpcJoinGameAckSerializer, RpcJoinGameAck>(ref parameters);
+            RpcExecutor.ExecuteCreateRequestComponent<RpcsLoadSubSceneSerializer, RpcsLoadSubScene>(ref parameters);
         }
 
         static PortableFunctionPointer<RpcExecutor.ExecuteDelegate> InvokeExecuteFunctionPointer =
@@ -35,7 +43,7 @@ namespace Assembly_CSharp.Generated
             return InvokeExecuteFunctionPointer;
         }
     }
-    class RpcJoinGameAckRpcCommandRequestSystem : RpcCommandRequestSystem<RpcJoinGameAckSerializer, RpcJoinGameAck>
+    class RpcsLoadSubSceneRpcCommandRequestSystem : RpcCommandRequestSystem<RpcsLoadSubSceneSerializer, RpcsLoadSubScene>
     {
         [BurstCompile]
         protected struct SendRpc : IJobEntityBatch

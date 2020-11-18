@@ -1,5 +1,4 @@
-﻿using Unity.Entities;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class ClientOnlyGameObjectPrefabsAuthoring : MonoBehaviour {
   public static ClientOnlyGameObjectPrefabsAuthoring Instance;

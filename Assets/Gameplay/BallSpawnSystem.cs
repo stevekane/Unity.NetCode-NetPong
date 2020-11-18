@@ -10,6 +10,7 @@ public class BallSpawnSystem : SystemBase {
 
   protected override void OnCreate() {
     BeginSimulationEntityCommandBufferSystem = World.GetExistingSystem<BeginSimulationEntityCommandBufferSystem>();
+    RequireSingletonForUpdate<EntityPrefabs>();
   }
 
   protected override void OnUpdate() {

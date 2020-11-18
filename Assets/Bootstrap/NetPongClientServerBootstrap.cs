@@ -1,41 +1,79 @@
-﻿using Unity.Entities;
+﻿using System;
+using Unity.Entities;
 using Unity.NetCode;
 using Unity.Networking.Transport;
+using UnityEngine;
 
 public class NetPongClientServerBootstrap : ClientServerBootstrap {
   public static ushort DEFAULT_PORT = 7979;
 
-  public override bool Initialize(string defaultWorldName) {
-    World.DefaultGameObjectInjectionWorld = new World(defaultWorldName);
+  public static World CreateDefaultWorld(string name) {
+    var defaultWorld = new World(name);
+
+    World.DefaultGameObjectInjectionWorld = defaultWorld;
     GenerateSystemLists(DefaultWorldInitialization.GetAllSystems(WorldSystemFilterFlags.Default));
-    DefaultWorldInitialization.AddSystemsToRootLevelSystemGroups(World.DefaultGameObjectInjectionWorld, ExplicitDefaultWorldSystems);
-    #if !UNITY_DOTSRUNTIE
-    ScriptBehaviourUpdateOrder.AddWorldToCurrentPlayerLoop(World.DefaultGameObjectInjectionWorld);
+    DefaultWorldInitialization.AddSystemsToRootLevelSystemGroups(defaultWorld, ExplicitDefaultWorldSystems);
+    #if !UNITY_DOTSRUNTIME
+    ScriptBehaviourUpdateOrder.AddWorldToCurrentPlayerLoop(defaultWorld);
     #endif
+    return defaultWorld;
+  }
 
+  public static World CreateClientApplicationWorld(string name) {
+    var applicationWorld = new World("Client Application World");
+    var clientMenuSystemGroup = applicationWorld.CreateSystem<ClientMenuSystemGroup>();
+    var clientMenuSystem = applicationWorld.CreateSystem<ClientMenuSystem>();
+    var rootApplicationSystemTypes = new Type[1] { typeof(SimulationSystemGroup) };
 
-    // Client-only initialization
-    if (RequestedPlayType != PlayType.Server) {
-      var defaultWorld = World.DefaultGameObjectInjectionWorld;
-      var defaultSimulationSystemGroup = defaultWorld.GetExistingSystem<SimulationSystemGroup>();
-      var clientMenuWorld = new World("Client Menu World");
-      var clientMenuSystemGroup = clientMenuWorld.CreateSystem<ClientMenuSystemGroup>();
-      var clientMenuSystem = clientMenuWorld.CreateSystem<ClientMenuSystem>();
+    DefaultWorldInitialization.AddSystemsToRootLevelSystemGroups(applicationWorld, rootApplicationSystemTypes);
+    applicationWorld.GetExistingSystem<SimulationSystemGroup>().AddSystemToUpdateList(clientMenuSystemGroup);
+    clientMenuSystemGroup.AddSystemToUpdateList(clientMenuSystem);
+    #if !UNITY_DOTSRUNTIME
+    ScriptBehaviourUpdateOrder.AddWorldToCurrentPlayerLoop(applicationWorld);
+    #endif
+    return applicationWorld;
+  }
 
-      clientMenuSystemGroup.AddSystemToUpdateList(clientMenuSystem);
-      defaultSimulationSystemGroup.AddSystemToUpdateList(clientMenuSystemGroup);
+  public override bool Initialize(string defaultWorldName) {
+    var defaultWorld = CreateDefaultWorld("Default World");
+    var subSceneReferences = GameObject.FindObjectOfType<SubSceneReferencesSingleton>().CreateInstance();
+
+    switch (RequestedPlayType) {
+    case PlayType.Client: {
+      var applicationWorld = CreateClientApplicationWorld("Client Application World");
     }
+    break;
 
-    // Server-only initialization
-    if (RequestedPlayType != PlayType.Client) {
-      var defaultWorld = World.DefaultGameObjectInjectionWorld;
-      var serverWorld = CreateServerWorld(defaultWorld, "ServerWorld");
+    case PlayType.Server: {
+      var serverWorld = CreateServerWorld(defaultWorld, "Server World");
       var networkStream = serverWorld.GetExistingSystem<NetworkStreamReceiveSystem>();
       var endPoint = NetworkEndPoint.AnyIpv4;
 
+      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.SharedResources);
+      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.StaticGeometry);
+      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.GameState);
+      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.Ghosts);
       endPoint.Port = DEFAULT_PORT;
       networkStream.Listen(endPoint);
-      UnityEngine.Debug.Log($"Server listening on port {endPoint.Port}");
+      UnityEngine.Debug.Log($"Server listening on port {endPoint.Port}.");
+    }
+    break;
+
+    case PlayType.ClientAndServer: {
+      var applicationWorld = CreateClientApplicationWorld("Client Application World");
+      var serverWorld = CreateServerWorld(defaultWorld, "Server World");
+      var networkStream = serverWorld.GetExistingSystem<NetworkStreamReceiveSystem>();
+      var endPoint = NetworkEndPoint.AnyIpv4;
+
+      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.SharedResources);
+      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.StaticGeometry);
+      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.GameState);
+      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.Ghosts);
+      endPoint.Port = DEFAULT_PORT;
+      networkStream.Listen(endPoint);
+      UnityEngine.Debug.Log($"Server listening on port {endPoint.Port}.");
+    }
+    break;
     }
     return true;
   }

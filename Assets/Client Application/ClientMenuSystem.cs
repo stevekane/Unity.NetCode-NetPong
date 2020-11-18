@@ -133,7 +133,6 @@ public class ClientMenuSystem : SystemBase {
       ClientWorld.EntityManager.AddComponent<RpcJoinGame>(joinGameRequest);
       ClientWorld.EntityManager.AddComponentData(joinGameRequest, rpcCommandRequest);
       state.CurrentMenu = ClientMenuState.Menu.JoiningGame;
-
       Debug.Log("Sent request to join game");
     }
   }

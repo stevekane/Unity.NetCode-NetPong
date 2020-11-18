@@ -7,25 +7,53 @@ public class ServerHandleRpcSystem : SystemBase {
   EntityQuery ExistingPlayers;
   EntityQuery PaddleSpawns;
 
+  public static Entity CreateLoadSubSceneRequest(EntityCommandBuffer ecb, Entity targetConnection, Hash128 sceneGUID) {
+    var entity = ecb.CreateEntity();
+
+    ecb.AddComponent<RpcsLoadSubScene>(entity);
+    ecb.AddComponent<SendRpcCommandRequestComponent>(entity);
+    ecb.SetComponent(entity, new RpcsLoadSubScene { SceneGUID = sceneGUID });
+    ecb.SetComponent(entity, new SendRpcCommandRequestComponent { TargetConnection = targetConnection });
+    return entity;
+  }
+
+  public static Entity CreateJoinGameAckRequest(EntityCommandBuffer ecb, Entity targetConnection) {
+    var entity = ecb.CreateEntity();
+
+    ecb.AddComponent<RpcJoinGameAck>(entity);
+    ecb.AddComponent<SendRpcCommandRequestComponent>(entity);
+    ecb.SetComponent(entity, default(RpcJoinGameAck));
+    ecb.SetComponent(entity, new SendRpcCommandRequestComponent { TargetConnection = targetConnection });
+    return entity;
+  }
+
+  public static Entity CreatePlayerEntity(EntityCommandBuffer ecb, Entity prefab, int existingPlayerCount, int networkId) {
+    var entity = ecb.Instantiate(prefab);
+
+    ecb.SetComponent(entity, new TeamOwner { TeamIndex = (existingPlayerCount % 2) });
+    ecb.SetComponent(entity, new Paddle { Radians = (existingPlayerCount % 2) * PI });
+    ecb.SetComponent(entity, new GhostOwnerComponent { NetworkId = networkId });
+    return entity;
+  }
+
   protected override void OnCreate() {
     ExistingPlayers = EntityManager.CreateEntityQuery(new ComponentType[] {
       ComponentType.ReadOnly<Paddle>()
     });
     RequireSingletonForUpdate<NetworkIdComponent>();
+    RequireSingletonForUpdate<EntityPrefabs>();
   }
 
   protected override void OnUpdate() {
     var barrier = World.GetExistingSystem<BeginSimulationEntityCommandBufferSystem>();
     var ecb = barrier.CreateCommandBuffer();
-    var subSceneReferences = GetSingleton<SubSceneReferences>();
+    var subSceneReferences = SubSceneReferencesSingleton.Instance;
+    var sharedResourcesGUID = subSceneReferences.SharedResources.SceneGUID;
+    var staticGeometryGUID = subSceneReferences.StaticGeometry.SceneGUID;
     var prefabs = GetSingleton<EntityPrefabs>();
     var networkIdFromEntity = GetComponentDataFromEntity<NetworkIdComponent>(isReadOnly: true);
     var networkStreamInGameFromEntity = GetComponentDataFromEntity<NetworkStreamInGame>(isReadOnly: true);
     var existingPlayerCount = ExistingPlayers.CalculateEntityCount();
-    var joinGameAck = new RpcJoinGameAck { 
-      GhostsSubSceneGUID = subSceneReferences.GhostPrefabs,
-      BoardSubSceneGUID = subSceneReferences.Board
-    };
 
     Entities
     .WithAll<RpcJoinGame>()
@@ -35,18 +63,14 @@ public class ServerHandleRpcSystem : SystemBase {
       }
 
       var networkId = networkIdFromEntity[request.SourceConnection].Value;
-      var playerEntity = ecb.Instantiate(prefabs.Paddle);
-      var ackEntity = ecb.CreateEntity();
+      var playerEntity = CreatePlayerEntity(ecb, prefabs.Paddle, existingPlayerCount, networkId);
 
-      ecb.SetComponent(playerEntity, new TeamOwner { TeamIndex = (existingPlayerCount % 2) });
-      ecb.SetComponent(playerEntity, new Paddle { Radians = (existingPlayerCount % 2) * PI });
-      ecb.SetComponent(playerEntity, new GhostOwnerComponent { NetworkId = networkId });
+      CreateLoadSubSceneRequest(ecb, request.SourceConnection, sharedResourcesGUID);
+      CreateLoadSubSceneRequest(ecb, request.SourceConnection, staticGeometryGUID);
+      CreateLoadSubSceneRequest(ecb, request.SourceConnection, staticGeometryGUID);
+      CreateJoinGameAckRequest(ecb, request.SourceConnection);
       ecb.SetComponent(request.SourceConnection, new CommandTargetComponent { targetEntity = playerEntity });
       ecb.AddComponent<NetworkStreamInGame>(request.SourceConnection);
-      ecb.AddComponent<RpcJoinGameAck>(ackEntity);
-      ecb.SetComponent(ackEntity, joinGameAck);
-      ecb.AddComponent<SendRpcCommandRequestComponent>(ackEntity);
-      ecb.SetComponent(ackEntity, new SendRpcCommandRequestComponent { TargetConnection = request.SourceConnection });
       ecb.DestroyEntity(requestEntity);
       UnityEngine.Debug.Log($"Allowing player {networkId} to join game.");
     })
