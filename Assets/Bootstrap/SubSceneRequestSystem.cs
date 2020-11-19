@@ -1,4 +1,5 @@
-﻿using Unity.Scenes;
+﻿using Unity.Collections;
+using Unity.Scenes;
 using Unity.Entities;
 using Unity.Jobs;
 
@@ -16,12 +17,20 @@ public struct SubSceneUnloadRequest : IComponentData {
 public class SubSceneRequestSystem : SystemBase {
   SceneSystem SceneSystem;
 
-  public static Entity CreateSubSceneLoadRequest(EntityManager entityManager, SubScene subScene) {
+  public static Entity CreateSubSceneLoadRequest(EntityManager entityManager, Hash128 sceneGUID) {
     var loadRequestEntity = entityManager.CreateEntity(typeof(SubSceneLoadRequest));
-    var subSceneLoadRequest = new SubSceneLoadRequest { SceneHash = subScene.SceneGUID };
+    var subSceneLoadRequest = new SubSceneLoadRequest { SceneHash = sceneGUID };
 
     entityManager.SetComponentData(loadRequestEntity, subSceneLoadRequest);
     return loadRequestEntity;
+  }
+
+  public static Entity CreateSubSceneUnloadRequest(EntityManager entityManager, Hash128 sceneGUID) {
+    var unloadRequestEntity = entityManager.CreateEntity(typeof(SubSceneUnloadRequest));
+    var subSceneLoadRequest = new SubSceneUnloadRequest { SceneHash = sceneGUID };
+
+    entityManager.SetComponentData(unloadRequestEntity, subSceneLoadRequest);
+    return unloadRequestEntity;
   }
 
   protected override void OnCreate() {

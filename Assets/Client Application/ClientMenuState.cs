@@ -2,7 +2,13 @@
 using Unity.Entities;
 
 public struct ClientMenuState : IComponentData {
-  public enum Menu { Bootstrap, TitleScreen, MainMenu, ConnectingToServer, JoiningGame, InGame }
+  public enum Menu { 
+    Bootstrap, 
+    TitleScreen, 
+    MainMenu, 
+    JoiningGame,
+    InGame
+  }
 
   public bool IsLoading;
   public Menu CurrentMenu;

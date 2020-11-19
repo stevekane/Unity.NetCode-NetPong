@@ -12,28 +12,28 @@ using Unity.Mathematics;
 namespace Assembly_CSharp.Generated
 {
     [BurstCompile]
-    public struct RpcsLoadSubSceneSerializer : IComponentData, IRpcCommandSerializer<RpcsLoadSubScene>
+    public struct RpcsRequestLevelAckSerializer : IComponentData, IRpcCommandSerializer<RpcsRequestLevelAck>
     {
-        public void Serialize(ref DataStreamWriter writer, in RpcSerializerState state, in RpcsLoadSubScene data)
+        public void Serialize(ref DataStreamWriter writer, in RpcSerializerState state, in RpcsRequestLevelAck data)
         {
-            writer.WriteUInt(data.SceneGUID.Value.x);
-            writer.WriteUInt(data.SceneGUID.Value.y);
-            writer.WriteUInt(data.SceneGUID.Value.z);
-            writer.WriteUInt(data.SceneGUID.Value.w);
+            writer.WriteUInt(data.LevelGUID.Value.x);
+            writer.WriteUInt(data.LevelGUID.Value.y);
+            writer.WriteUInt(data.LevelGUID.Value.z);
+            writer.WriteUInt(data.LevelGUID.Value.w);
         }
 
-        public void Deserialize(ref DataStreamReader reader, in RpcDeserializerState state,  ref RpcsLoadSubScene data)
+        public void Deserialize(ref DataStreamReader reader, in RpcDeserializerState state,  ref RpcsRequestLevelAck data)
         {
-            data.SceneGUID.Value.x = (uint) reader.ReadUInt();
-            data.SceneGUID.Value.y = (uint) reader.ReadUInt();
-            data.SceneGUID.Value.z = (uint) reader.ReadUInt();
-            data.SceneGUID.Value.w = (uint) reader.ReadUInt();
+            data.LevelGUID.Value.x = (uint) reader.ReadUInt();
+            data.LevelGUID.Value.y = (uint) reader.ReadUInt();
+            data.LevelGUID.Value.z = (uint) reader.ReadUInt();
+            data.LevelGUID.Value.w = (uint) reader.ReadUInt();
         }
         [BurstCompile]
         [MonoPInvokeCallback(typeof(RpcExecutor.ExecuteDelegate))]
         private static void InvokeExecute(ref RpcExecutor.Parameters parameters)
         {
-            RpcExecutor.ExecuteCreateRequestComponent<RpcsLoadSubSceneSerializer, RpcsLoadSubScene>(ref parameters);
+            RpcExecutor.ExecuteCreateRequestComponent<RpcsRequestLevelAckSerializer, RpcsRequestLevelAck>(ref parameters);
         }
 
         static PortableFunctionPointer<RpcExecutor.ExecuteDelegate> InvokeExecuteFunctionPointer =
@@ -43,7 +43,7 @@ namespace Assembly_CSharp.Generated
             return InvokeExecuteFunctionPointer;
         }
     }
-    class RpcsLoadSubSceneRpcCommandRequestSystem : RpcCommandRequestSystem<RpcsLoadSubSceneSerializer, RpcsLoadSubScene>
+    class RpcsRequestLevelAckRpcCommandRequestSystem : RpcCommandRequestSystem<RpcsRequestLevelAckSerializer, RpcsRequestLevelAck>
     {
         [BurstCompile]
         protected struct SendRpc : IJobEntityBatch

@@ -7,7 +7,6 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.NetCode;
 using UnityEngine.SceneManagement;
-using Unity.Networking.Transport;
 using UnityEngine;
 
 public enum MenuAction { 
@@ -20,7 +19,31 @@ public enum MenuAction {
 public class ClientMenuSystem : SystemBase {
   public static List<MenuAction> MenuActions = new List<MenuAction>(16);
 
-  World ClientWorld;
+  public World ClientWorld;
+
+  public static bool TryGetSingletonEntityFromOtherWorld<T>(World world, out Entity entity) where T : IComponentData {
+    var entities = world.EntityManager.CreateEntityQuery(typeof(T)).ToEntityArray(Allocator.Temp);
+
+    if (entities.Length == 1) {
+      entity = entities[0];
+      return true;
+    } else {
+      entity = Entity.Null;
+      return false;
+    }
+  }
+
+  public static bool TryGetSingletonFromOtherWorld<T>(World world, out T t) where T : struct, IComponentData {
+    var results = world.EntityManager.CreateEntityQuery(typeof(T)).ToComponentDataArray<T>(Allocator.Temp);
+
+    if (results.Length == 1) {
+      t = results[0];
+      return true;
+    } else {
+      t = default(T);
+      return false;
+    }
+  }
 
   protected override void OnCreate() {
     EntityManager.CreateEntity(typeof(ClientMenuState));
@@ -50,29 +73,24 @@ public class ClientMenuSystem : SystemBase {
     }
 
     switch (state.CurrentMenu) {
-    case ClientMenuState.Menu.Bootstrap:
-      Load(ref state, ClientMenuState.Menu.TitleScreen, "Title Screen");
-    break;
+      case ClientMenuState.Menu.Bootstrap:
+        Load(ref state, ClientMenuState.Menu.TitleScreen, "Title Screen");
+      break;
 
-    case ClientMenuState.Menu.TitleScreen:
-      ProcessTitleScreenActions(ref state, MenuActions);
-    break;
+      case ClientMenuState.Menu.TitleScreen:
+        ProcessTitleScreenActions(ref state, MenuActions);
+      break;
 
-    case ClientMenuState.Menu.MainMenu:
-      ProcessMainMenuActions(ref state, MenuActions);
-    break;
+      case ClientMenuState.Menu.MainMenu:
+        ProcessMainMenuActions(ref state, MenuActions);
+      break;
 
-    case ClientMenuState.Menu.ConnectingToServer:
-      UpdateConnectingToServer(ref state);
-    break;
+      case ClientMenuState.Menu.JoiningGame:
+        CheckIfInGame(ref state);
+      break;
 
-    case ClientMenuState.Menu.JoiningGame:
-      UpdateJoiningGame(ref state);
-    break;
-
-    case ClientMenuState.Menu.InGame:
-      UpdateInGame(ref state);
-    break;
+      case ClientMenuState.Menu.InGame:
+      break;
     }
     MenuActions.Clear();
     SetComponent(clientMenuStateEntity, state);
@@ -92,15 +110,15 @@ public class ClientMenuSystem : SystemBase {
   void ProcessTitleScreenActions(ref ClientMenuState state, List<MenuAction> actions) {
     foreach (var action in actions) {
       switch (action) {
-      case MenuAction.ExitTitleScreen:
-        Unload("Title Screen");
-        Load(ref state, ClientMenuState.Menu.MainMenu, "Main Menu");
-      break;
+        case MenuAction.ExitTitleScreen:
+          Unload("Title Screen");
+          Load(ref state, ClientMenuState.Menu.MainMenu, "Main Menu");
+        break;
 
-      case MenuAction.ExitGame:
-        Debug.Log("You quit!");
-        QuitGame();
-      break;
+        case MenuAction.ExitGame:
+          Debug.Log("You quit!");
+          QuitGame();
+        break;
       }
     }
   }
@@ -109,48 +127,24 @@ public class ClientMenuSystem : SystemBase {
     foreach (var action in actions) {
       switch (action) {
       case MenuAction.JoinGame:
-        ConnectToServer(ref state, NetPongClientServerBootstrap.DEFAULT_PORT);
+        InitiateJoinGame(ref state, NetPongClientServerBootstrap.DEFAULT_PORT);
       break;
 
       case MenuAction.ExitGame:
         Debug.Log("You quit!");
         QuitGame();
       break;
-      default:
-      break;
       }
     }
   }
 
-  void UpdateConnectingToServer(ref ClientMenuState state) {
-    var networkStream = ClientWorld.GetExistingSystem<NetworkStreamReceiveSystem>();
-    var connectionEntity = ClientWorld.EntityManager.CreateEntityQuery(typeof(NetworkStreamConnection)).ToEntityArray(Allocator.Temp)[0];
-
-    if (ClientWorld.EntityManager.HasComponent<NetworkIdComponent>(connectionEntity)) {
-      var joinGameRequest = ClientWorld.EntityManager.CreateEntity();
-      var rpcCommandRequest = new SendRpcCommandRequestComponent { TargetConnection = connectionEntity };
-
-      ClientWorld.EntityManager.AddComponent<RpcJoinGame>(joinGameRequest);
-      ClientWorld.EntityManager.AddComponentData(joinGameRequest, rpcCommandRequest);
-      state.CurrentMenu = ClientMenuState.Menu.JoiningGame;
-      Debug.Log("Sent request to join game");
+  void CheckIfInGame(ref ClientMenuState state) {
+    if (TryGetSingletonFromOtherWorld(ClientWorld, out ClientConnection connection)) {
+      if (connection.CurrentState == ClientConnection.State.InGame) {
+        Unload("Main Menu");
+        state.CurrentMenu = ClientMenuState.Menu.InGame;
+      }
     }
-  }
-
-  void UpdateJoiningGame(ref ClientMenuState state) {
-    var networkStream = ClientWorld.GetExistingSystem<NetworkStreamReceiveSystem>();
-    var connectionEntity = ClientWorld.EntityManager.CreateEntityQuery(typeof(NetworkStreamConnection)).ToEntityArray(Allocator.Temp)[0];
-
-    if (ClientWorld.EntityManager.HasComponent<NetworkStreamInGame>(connectionEntity)) {
-      Unload("Main Menu");
-      state.CurrentMenu = ClientMenuState.Menu.InGame;
-      Debug.Log("Going InGame");
-    }
-  }
-
-  void UpdateInGame(ref ClientMenuState state) {
-    // TODO: For now do nothing but perhaps respond to some UI or Input events eventually?
-    // Maybe the game eventually ends?
   }
 
   void QuitGame() {
@@ -161,28 +155,13 @@ public class ClientMenuSystem : SystemBase {
     #endif
   }
 
-  NetworkEndPoint NetworkEndPointForEnvironment(ushort port) {
-    #if UNITY_EDITOR
-    return NetworkEndPoint.Parse(ClientServerBootstrap.RequestedAutoConnect, port);
-    #else
-    var endPoint = NetworkEndPoint.LoopbackIpv4;
-
-    endPoint.Port = port;
-    return endPoint;
-    #endif
-  }
-
-  void ConnectToServer(ref ClientMenuState state, ushort port) {
-    var defaultWorld = World.DefaultGameObjectInjectionWorld;
-    var clientWorldName = $"ClientWorld:{port}";
-    var clientWorld = NetPongClientServerBootstrap.CreateClientWorld(defaultWorld, clientWorldName);
-    var networkStream = clientWorld.GetExistingSystem<NetworkStreamReceiveSystem>();
-    var endPoint = NetworkEndPointForEnvironment(port);
-    var connectionEntity = networkStream.Connect(endPoint);
-
-    UnityEngine.Debug.Log($"Client connected to server on {port}.");
-    state.CurrentMenu = ClientMenuState.Menu.ConnectingToServer;
-    ClientWorld = clientWorld;
+  void InitiateJoinGame(ref ClientMenuState state, ushort port) {
+    ClientConnectionSystem.CreateConnectionEvent(ClientWorld.EntityManager, new ClientConnectionEvent {
+      EventName = ClientConnectionEvent.Name.Connect,
+      Port = port
+    });
+    UnityEngine.Debug.Log($"Client initiated join game on port {port}.");
+    state.CurrentMenu = ClientMenuState.Menu.JoiningGame;
   }
 
   void DisconnectFromServer() {

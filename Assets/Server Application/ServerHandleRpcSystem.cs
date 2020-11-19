@@ -7,23 +7,11 @@ public class ServerHandleRpcSystem : SystemBase {
   EntityQuery ExistingPlayers;
   EntityQuery PaddleSpawns;
 
-  public static Entity CreateLoadSubSceneRequest(EntityCommandBuffer ecb, Entity targetConnection, Hash128 sceneGUID) {
+  public static Entity CreateRpc(EntityCommandBuffer ecb, Entity targetConnection) {
     var entity = ecb.CreateEntity();
+    var sendRpc = new SendRpcCommandRequestComponent { TargetConnection = targetConnection };
 
-    ecb.AddComponent<RpcsLoadSubScene>(entity);
-    ecb.AddComponent<SendRpcCommandRequestComponent>(entity);
-    ecb.SetComponent(entity, new RpcsLoadSubScene { SceneGUID = sceneGUID });
-    ecb.SetComponent(entity, new SendRpcCommandRequestComponent { TargetConnection = targetConnection });
-    return entity;
-  }
-
-  public static Entity CreateJoinGameAckRequest(EntityCommandBuffer ecb, Entity targetConnection) {
-    var entity = ecb.CreateEntity();
-
-    ecb.AddComponent<RpcJoinGameAck>(entity);
-    ecb.AddComponent<SendRpcCommandRequestComponent>(entity);
-    ecb.SetComponent(entity, default(RpcJoinGameAck));
-    ecb.SetComponent(entity, new SendRpcCommandRequestComponent { TargetConnection = targetConnection });
+    ecb.AddComponent(entity, sendRpc);
     return entity;
   }
 
@@ -48,12 +36,25 @@ public class ServerHandleRpcSystem : SystemBase {
     var barrier = World.GetExistingSystem<BeginSimulationEntityCommandBufferSystem>();
     var ecb = barrier.CreateCommandBuffer();
     var subSceneReferences = SubSceneReferencesSingleton.Instance;
-    var sharedResourcesGUID = subSceneReferences.SharedResources.SceneGUID;
     var staticGeometryGUID = subSceneReferences.StaticGeometry.SceneGUID;
     var prefabs = GetSingleton<EntityPrefabs>();
     var networkIdFromEntity = GetComponentDataFromEntity<NetworkIdComponent>(isReadOnly: true);
     var networkStreamInGameFromEntity = GetComponentDataFromEntity<NetworkStreamInGame>(isReadOnly: true);
     var existingPlayerCount = ExistingPlayers.CalculateEntityCount();
+
+    Entities
+    .WithAll<RpcRequestLevel>()
+    .ForEach((Entity requestEntity, in ReceiveRpcCommandRequestComponent request) => {
+      var networkId = networkIdFromEntity[request.SourceConnection].Value;
+      var rpcEntity = CreateRpc(ecb, request.SourceConnection);
+
+      ecb.AddComponent(rpcEntity, new RpcsRequestLevelAck { LevelGUID = staticGeometryGUID });
+      ecb.DestroyEntity(requestEntity);
+      UnityEngine.Debug.Log($"Player {networkId} requested level to load. Sending {staticGeometryGUID}");
+    })
+    .WithReadOnly(networkIdFromEntity)
+    .WithBurst()
+    .Schedule();
 
     Entities
     .WithAll<RpcJoinGame>()
@@ -64,11 +65,9 @@ public class ServerHandleRpcSystem : SystemBase {
 
       var networkId = networkIdFromEntity[request.SourceConnection].Value;
       var playerEntity = CreatePlayerEntity(ecb, prefabs.Paddle, existingPlayerCount, networkId);
+      var rpcEntity = CreateRpc(ecb, request.SourceConnection);
 
-      CreateLoadSubSceneRequest(ecb, request.SourceConnection, sharedResourcesGUID);
-      CreateLoadSubSceneRequest(ecb, request.SourceConnection, staticGeometryGUID);
-      CreateLoadSubSceneRequest(ecb, request.SourceConnection, staticGeometryGUID);
-      CreateJoinGameAckRequest(ecb, request.SourceConnection);
+      ecb.AddComponent(rpcEntity, default(RpcJoinGameAck));
       ecb.SetComponent(request.SourceConnection, new CommandTargetComponent { targetEntity = playerEntity });
       ecb.AddComponent<NetworkStreamInGame>(request.SourceConnection);
       ecb.DestroyEntity(requestEntity);
@@ -76,14 +75,6 @@ public class ServerHandleRpcSystem : SystemBase {
     })
     .WithReadOnly(networkIdFromEntity)
     .WithReadOnly(networkStreamInGameFromEntity)
-    .WithBurst()
-    .Schedule();
-
-    Entities
-    .WithAll<RpcLeaveGame>()
-    .ForEach((Entity requestEntity, in ReceiveRpcCommandRequestComponent request) => {
-      UnityEngine.Debug.Log($"LeaveGame from {request.SourceConnection.Index} recieved but not implemented");
-    })
     .WithBurst()
     .Schedule();
     barrier.AddJobHandleForProducer(Dependency);

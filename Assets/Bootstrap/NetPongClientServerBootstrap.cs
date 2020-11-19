@@ -19,12 +19,14 @@ public class NetPongClientServerBootstrap : ClientServerBootstrap {
     return defaultWorld;
   }
 
-  public static World CreateClientApplicationWorld(string name) {
+  public static World CreateClientApplicationWorld(World clientWorld, string name) {
     var applicationWorld = new World("Client Application World");
     var clientMenuSystemGroup = applicationWorld.CreateSystem<ClientMenuSystemGroup>();
     var clientMenuSystem = applicationWorld.CreateSystem<ClientMenuSystem>();
     var rootApplicationSystemTypes = new Type[1] { typeof(SimulationSystemGroup) };
 
+    clientWorld.EntityManager.CreateEntity(typeof(ClientConnection));
+    clientMenuSystem.ClientWorld = clientWorld;
     DefaultWorldInitialization.AddSystemsToRootLevelSystemGroups(applicationWorld, rootApplicationSystemTypes);
     applicationWorld.GetExistingSystem<SimulationSystemGroup>().AddSystemToUpdateList(clientMenuSystemGroup);
     clientMenuSystemGroup.AddSystemToUpdateList(clientMenuSystem);
@@ -38,43 +40,29 @@ public class NetPongClientServerBootstrap : ClientServerBootstrap {
     var defaultWorld = CreateDefaultWorld("Default World");
     var subSceneReferences = GameObject.FindObjectOfType<SubSceneReferencesSingleton>().CreateInstance();
 
-    switch (RequestedPlayType) {
-    case PlayType.Client: {
-      var applicationWorld = CreateClientApplicationWorld("Client Application World");
-    }
-    break;
-
-    case PlayType.Server: {
+    // Server initialization
+    if (RequestedPlayType != PlayType.Client) {
       var serverWorld = CreateServerWorld(defaultWorld, "Server World");
       var networkStream = serverWorld.GetExistingSystem<NetworkStreamReceiveSystem>();
       var endPoint = NetworkEndPoint.AnyIpv4;
 
-      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.SharedResources);
-      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.StaticGeometry);
-      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.GameState);
-      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.Ghosts);
+      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.SharedResources.SceneGUID);
+      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.StaticGeometry.SceneGUID);
+      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.GameState.SceneGUID);
+      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.Ghosts.SceneGUID);
       endPoint.Port = DEFAULT_PORT;
       networkStream.Listen(endPoint);
       UnityEngine.Debug.Log($"Server listening on port {endPoint.Port}.");
     }
-    break;
 
-    case PlayType.ClientAndServer: {
-      var applicationWorld = CreateClientApplicationWorld("Client Application World");
-      var serverWorld = CreateServerWorld(defaultWorld, "Server World");
-      var networkStream = serverWorld.GetExistingSystem<NetworkStreamReceiveSystem>();
-      var endPoint = NetworkEndPoint.AnyIpv4;
+    // Client initialization
+    if (RequestedPlayType != PlayType.Server) {
+      var clientWorld = CreateClientWorld(defaultWorld, "Client World");
+      var applicationWorld = CreateClientApplicationWorld(clientWorld, "Client Application World");
 
-      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.SharedResources);
-      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.StaticGeometry);
-      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.GameState);
-      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.Ghosts);
-      endPoint.Port = DEFAULT_PORT;
-      networkStream.Listen(endPoint);
-      UnityEngine.Debug.Log($"Server listening on port {endPoint.Port}.");
+      SubSceneRequestSystem.CreateSubSceneLoadRequest(clientWorld.EntityManager, subSceneReferences.SharedResources.SceneGUID);
     }
-    break;
-    }
+
     return true;
   }
 }

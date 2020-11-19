@@ -12,6 +12,7 @@ public class PaddleMovementSystem : SystemBase {
 
   protected override void OnCreate() {
     GhostPredictionSystemGroup = World.GetExistingSystem<GhostPredictionSystemGroup>();
+    RequireSingletonForUpdate<GameConfiguration>();
   }
 
   protected override void OnUpdate() {
