@@ -46,7 +46,6 @@ public class NetPongClientServerBootstrap : ClientServerBootstrap {
       var networkStream = serverWorld.GetExistingSystem<NetworkStreamReceiveSystem>();
       var endPoint = NetworkEndPoint.AnyIpv4;
 
-      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.SharedResources.SceneGUID);
       SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.StaticGeometry.SceneGUID);
       SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.GameState.SceneGUID);
       SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.Ghosts.SceneGUID);
@@ -60,7 +59,7 @@ public class NetPongClientServerBootstrap : ClientServerBootstrap {
       var clientWorld = CreateClientWorld(defaultWorld, "Client World");
       var applicationWorld = CreateClientApplicationWorld(clientWorld, "Client Application World");
 
-      SubSceneRequestSystem.CreateSubSceneLoadRequest(clientWorld.EntityManager, subSceneReferences.SharedResources.SceneGUID);
+      SubSceneRequestSystem.CreateSubSceneLoadRequest(clientWorld.EntityManager, subSceneReferences.ClientSingletons.SceneGUID);
     }
 
     return true;

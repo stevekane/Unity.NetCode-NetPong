@@ -12,7 +12,7 @@ public struct ClientConnection : IComponentData {
     LoadingLevel,
     JoinGameRequestSent,
     InGame
-  };
+  }
 
   public State CurrentState;
   public ushort Port;
@@ -86,6 +86,7 @@ public class ClientConnectionSystem : SystemBase {
             SubSceneRequestSystem.CreateSubSceneUnloadRequest(EntityManager, connection.LevelGUID);
             connection.Port = port;
             connection.CurrentState = ClientConnection.State.Connecting;
+            break;
           }
         }
       }
@@ -114,6 +115,7 @@ public class ClientConnectionSystem : SystemBase {
             SubSceneRequestSystem.CreateSubSceneLoadRequest(EntityManager, levelGUID);
             connection.LevelGUID = levelGUID;
             connection.CurrentState = ClientConnection.State.LoadingLevel;
+            break;
           }
         }
       }
@@ -139,6 +141,7 @@ public class ClientConnectionSystem : SystemBase {
             UnityEngine.Debug.Log($"Received JoinGameAck. Going InGame.");
             connection.CurrentState = ClientConnection.State.InGame;
             EntityManager.AddComponent<NetworkStreamInGame>(networkStreamConnectionEntity);
+            break;
           }
         }
       }

@@ -8,6 +8,7 @@ public class SubSceneReferencesSingleton : MonoBehaviour {
   public SubScene StaticGeometry;
   public SubScene Ghosts;
   public SubScene GameState;
+  public SubScene ClientSingletons;
 
   public SubSceneReferencesSingleton CreateInstance() {
     Instance = this;

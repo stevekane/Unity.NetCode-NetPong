@@ -5,7 +5,8 @@ public class ClientOnlyGameObjectPrefabsAuthoring : MonoBehaviour {
 
   public GameObject ScoreGUIPrefab;
 
-  public void Awake() {
+  public ClientOnlyGameObjectPrefabsAuthoring CreateInstance() {
     Instance = this;
+    return this;
   }
 }
