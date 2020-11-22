@@ -46,9 +46,8 @@ public class NetPongClientServerBootstrap : ClientServerBootstrap {
       var networkStream = serverWorld.GetExistingSystem<NetworkStreamReceiveSystem>();
       var endPoint = NetworkEndPoint.AnyIpv4;
 
-      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.StaticGeometry.SceneGUID);
-      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.GameState.SceneGUID);
-      SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.Ghosts.SceneGUID);
+      // SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.StaticGeometry.SceneGUID);
+      // SubSceneRequestSystem.CreateSubSceneLoadRequest(serverWorld.EntityManager, subSceneReferences.GameState.SceneGUID);
       endPoint.Port = DEFAULT_PORT;
       networkStream.Listen(endPoint);
       UnityEngine.Debug.Log($"Server listening on port {endPoint.Port}.");
@@ -58,8 +57,14 @@ public class NetPongClientServerBootstrap : ClientServerBootstrap {
     if (RequestedPlayType != PlayType.Server) {
       var clientWorld = CreateClientWorld(defaultWorld, "Client World");
       var applicationWorld = CreateClientApplicationWorld(clientWorld, "Client Application World");
+      var gameObjectPrefabs = Resources.LoadAll<GameObject>("");
+      var audioClips = Resources.LoadAll<AudioClip>("");
+      var gameObjectCache = GameObjectCache.FromResources(gameObjectPrefabs);
+      var audioClipCache = AudioClipCache.FromResources(audioClips);
+      var cachesEntity = clientWorld.EntityManager.CreateEntity(typeof(GameObjectCache), typeof(AudioClipCache));
 
-      SubSceneRequestSystem.CreateSubSceneLoadRequest(clientWorld.EntityManager, subSceneReferences.ClientSingletons.SceneGUID);
+      clientWorld.EntityManager.AddComponentData(cachesEntity, gameObjectCache);
+      clientWorld.EntityManager.AddComponentData(cachesEntity, audioClipCache);
     }
 
     return true;

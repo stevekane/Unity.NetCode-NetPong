@@ -18,8 +18,14 @@ public class GameObjectPrefabProxySystem : SystemBase {
     .WithName("Create_Instance_For_PrefabProxy")
     .WithNone<GameObjectInstance>()
     .ForEach((Entity e, ref GameObjectPrefabProxy prefabProxy) => {
-      if (GameObjectCache.TryGet(gameObjectCache, prefabProxy.ID, out GameObject gameObject)) {
+      if (gameObjectCache.TryGet(prefabProxy.ID, out GameObject gameObject)) {
+        Debug.Log($"Looking for {prefabProxy.ID} and found it");
         EntityManager.AddComponentData(e, new GameObjectInstance { Instance = GameObject.Instantiate(gameObject) });
+      } else {
+        Debug.Log($"Looking for {prefabProxy.ID}");
+        for (int i = 0; i < gameObjectCache.Reference.Value.GameObjectPairs.Length; i++) {
+          Debug.Log($"Found {gameObjectCache.Reference.Value.GameObjectPairs[i].Id}");
+        }
       };
     })
     .WithStructuralChanges()

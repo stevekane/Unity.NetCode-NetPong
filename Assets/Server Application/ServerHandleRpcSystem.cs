@@ -36,7 +36,7 @@ public class ServerHandleRpcSystem : SystemBase {
     var barrier = World.GetExistingSystem<BeginSimulationEntityCommandBufferSystem>();
     var ecb = barrier.CreateCommandBuffer();
     var subSceneReferences = SubSceneReferencesSingleton.Instance;
-    var staticGeometryGUID = subSceneReferences.StaticGeometry.SceneGUID;
+    // var staticGeometryGUID = subSceneReferences.StaticGeometry.SceneGUID;
     var prefabs = GetSingleton<EntityPrefabs>();
     var networkIdFromEntity = GetComponentDataFromEntity<NetworkIdComponent>(isReadOnly: true);
     var networkStreamInGameFromEntity = GetComponentDataFromEntity<NetworkStreamInGame>(isReadOnly: true);
@@ -48,9 +48,9 @@ public class ServerHandleRpcSystem : SystemBase {
       var networkId = networkIdFromEntity[request.SourceConnection].Value;
       var rpcEntity = CreateRpc(ecb, request.SourceConnection);
 
-      ecb.AddComponent(rpcEntity, new RpcsRequestLevelAck { LevelGUID = staticGeometryGUID });
+      // ecb.AddComponent(rpcEntity, new RpcsRequestLevelAck { LevelGUID = staticGeometryGUID });
       ecb.DestroyEntity(requestEntity);
-      UnityEngine.Debug.Log($"Player {networkId} requested level to load. Sending {staticGeometryGUID}");
+      // UnityEngine.Debug.Log($"Player {networkId} requested level to load. Sending {staticGeometryGUID}");
     })
     .WithReadOnly(networkIdFromEntity)
     .WithBurst()

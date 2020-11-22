@@ -10,7 +10,7 @@ public class GameObjectPrefabProxyAuthoring : MonoBehaviour, IConvertGameObjectT
 
   public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem) {
     dstManager.AddComponentData(entity, new GameObjectPrefabProxy {
-      ID = Prefab.GetInstanceID() 
+      ID = Prefab.Hash()
     });
   }
 }

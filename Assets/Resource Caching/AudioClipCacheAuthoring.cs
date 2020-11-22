@@ -29,26 +29,21 @@ public struct AudioClipCache : IComponentData {
       return null;
     }
   }
-}
 
-public class AudioClipCacheAuthoring : MonoBehaviour, IConvertGameObjectToEntity {
-  public string PathFromResourcesRoot = "";
-
-  public void Convert(Entity entity, EntityManager dstManager, GameObjectConversionSystem conversionSystem) {
-    var audioClips = Resources.LoadAll<AudioClip>(PathFromResourcesRoot);
+  public static AudioClipCache FromResources(AudioClip[] gameObjects) {
+    BlobAssetReference<AudioClipCacheBlobAsset> reference;
 
     using (var builder = new BlobBuilder(Allocator.Temp)) {
       ref var root = ref builder.ConstructRoot<AudioClipCacheBlobAsset>();
-      var clipPairs = builder.Allocate(ref root.AudioClipPairs, audioClips.Length);
+      var clipPairs = builder.Allocate(ref root.AudioClipPairs, gameObjects.Length);
 
-      for (int i = 0; i < audioClips.Length; i++) {
-        Debug.Log($"Adding {audioClips[i].name} with ID {audioClips[i].GetInstanceID()} to AudioClipCache.");
-        clipPairs[i] = new AudioClipPair(audioClips[i].GetInstanceID(), audioClips[i]);
+      for (int i = 0; i < gameObjects.Length; i++) {
+        Debug.Log($"Adding Prefab {gameObjects[i].name} with ID {gameObjects[i].GetInstanceID()} to AudioClipCache.");
+        clipPairs[i] = new AudioClipPair(gameObjects[i].Hash(), gameObjects[i]);
       }
-
-      var reference = builder.CreateBlobAssetReference<AudioClipCacheBlobAsset>(Allocator.Persistent);
-
-      dstManager.AddComponentData(entity, new AudioClipCache { Reference = reference });
+      reference = builder.CreateBlobAssetReference<AudioClipCacheBlobAsset>(Allocator.Persistent);
+      Debug.Log($"{clipPairs.Length} total items in cache");
     }
+    return new AudioClipCache { Reference = reference };
   }
 }
